@@ -18,6 +18,8 @@ app.use(express.json());
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/private', require('./routes/privateRoutes'));
 app.use('/api', require('./routes/organizationRoutes'));
+app.use('/api/posts', require('./routes/postRoutes'));
+
 
 
 // Health check route
