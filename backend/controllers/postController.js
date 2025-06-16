@@ -25,12 +25,36 @@ exports.getUserPosts = async (req, res) => {
 };
 
 // (Optional) update, delete, filter by status
+// exports.getCalendarPosts = async (req, res) => {
+//   const { startDate, endDate, status, platform } = req.query;
+
+//   let query = {
+//     createdBy: req.user._id
+//   };
+
+//   if (startDate && endDate) {
+//     query.scheduledAt = {
+//       $gte: new Date(startDate),
+//       $lte: new Date(endDate)
+//     };
+//   }
+
+//   if (status) query.status = status;
+//   if (platform) query.platform = platform;
+
+//   try {
+//     const posts = await Post.find(query).sort({ scheduledAt: 1 });
+//     res.json(posts);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: 'Error fetching calendar posts' });
+//   }
+// };
+
 exports.getCalendarPosts = async (req, res) => {
   const { startDate, endDate, status, platform } = req.query;
 
-  let query = {
-    createdBy: req.user._id
-  };
+  let query = {};
 
   if (startDate && endDate) {
     query.scheduledAt = {
@@ -50,3 +74,4 @@ exports.getCalendarPosts = async (req, res) => {
     res.status(500).json({ message: 'Error fetching calendar posts' });
   }
 };
+
