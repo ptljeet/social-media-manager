@@ -1,33 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import Sidebar from '../components/Sidebar';
 
 export default function HomePage() {
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r p-4 space-y-4">
-        <h2 className="text-xl font-bold text-green-600">SocialHub</h2>
-        <nav className="space-y-2">
-          {[
-            { label: "Dashboard", to: "/home" },
-            { label: "Calendar", to: "/calendar" },
-            { label: "Inbox", to: "/inbox" },
-            { label: "Publishing", to: "/publishing" },
-            { label: "Listening", to: "/listening" },
-            { label: "Reports", to: "/reports" },
-            { label: "People", to: "/people" },
-            { label: "Reviews", to: "/reviews" }
-          ].map((item) => (
-            <Link
-              key={item.label}
-              to={item.to}
-              className="block text-gray-700 hover:text-green-600"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
+      {/* Reusable Sidebar */}
+      <Sidebar />
 
       {/* Main Content */}
       <main className="flex-1 p-6">

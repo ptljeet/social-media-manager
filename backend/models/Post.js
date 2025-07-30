@@ -1,15 +1,45 @@
 const mongoose = require('mongoose');
 
 const postSchema = new mongoose.Schema({
-  content: { type: String, required: true },
-  mediaUrl: { type: String },
-  platform: { type: String, enum: ['Facebook', 'Instagram'], required: true },
-  scheduledAt: { type: Date, required: true },
-  status: { type: String, enum: ['Draft', 'Scheduled', 'Published'], default: 'Draft' },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
-  organization: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization' },
-  createdAt: { type: Date, default: Date.now }
-});
+  title: {
+    type: String,
+    required: true
+  },
+  content: {
+    type: String
+  },
+  media: {
+    type: String // URL or file path
+  },
+  platform: {
+    type: String,
+    enum: ['facebook', 'instagram', 'twitter'],
+    default: 'facebook'
+  },
+  scheduledAt: {
+    type: Date
+  },
+  status: {
+    type: String,
+    enum: ['draft', 'pending', 'approved', 'published'],
+    default: 'draft'
+  },
+  publishedAt: {
+    type: Date
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  organization: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization'
+  },
+  team: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Team'
+  }
+}, { timestamps: true });
 
 module.exports = mongoose.model('Post', postSchema);
