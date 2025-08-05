@@ -11,7 +11,7 @@ import TeamManagementPage from './pages/TeamManagementPage';
 import ReportsPage from './pages/ReportsPage';
 import PostComposerPage from './pages/PostComposerPage';
 import AdminPostApprovals from './pages/AdminPostApprovals';
-
+import AdminSidebar from './components/AdminSidebar';
 
 export default function App() {
   return (
