@@ -9,32 +9,29 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+const handleLogin = async (e) => {
+  e.preventDefault();
+  try {
+    const res = await axios.post('http://localhost:5000/api/auth/login', {
+      email,
+      password
+    });
+    localStorage.setItem('token', res.data.token);
+    localStorage.setItem('role', res.data.user.role);
 
-    try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', {
-        email,
-        password
-      });
-
-      const { token, user } = res.data;
-
-      // Save token and user to localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      // Redirect based on role
-      if (user.role === 'Admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/calendar');
-      }
-    } catch (err) {
-      console.error('Login failed:', err);
-      toast.error('Invalid email or password');
+    if (res.data.user.role === 'super_admin') {
+      window.location.href = '/superadmin/dashboard';
+    } else if (res.data.user.role === 'admin') {
+      window.location.href = '/admin/dashboard';
+    } else {
+      window.location.href = '/dashboard';
     }
-  };
+  } catch (error) {
+    alert('Login failed');
+  }
+};
+
+
 
   return (
     <main className="flex items-center justify-center min-h-screen bg-gray-100">

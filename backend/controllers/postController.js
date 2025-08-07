@@ -4,9 +4,7 @@ const Post = require('../models/Post');
 exports.createPost = async (req, res) => {
   try {
     const { title, content, platform, status, scheduledAt } = req.body;
-
-const media = req.file && req.file.filename ? `/uploads/${req.file.filename}` : null;
-
+    const media = req.file?.filename ? `/uploads/${req.file.filename}` : null;
 
     const newPost = new Post({
       title,
@@ -16,7 +14,7 @@ const media = req.file && req.file.filename ? `/uploads/${req.file.filename}` : 
       scheduledAt,
       media,
       createdBy: req.user.id,
-      organization: req.user.organization,
+      organization: req.user.organization, // ✅ Ensures organization is saved
       team: req.user.team
     });
 
@@ -59,7 +57,7 @@ exports.getCalendarPosts = async (req, res) => {
 // Approve a post
 exports.approvePost = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findOne({ _id: req.params.id, organization: req.user.organization });
     if (!post) return res.status(404).json({ error: 'Post not found' });
 
     post.status = 'approved';
@@ -75,7 +73,7 @@ exports.approvePost = async (req, res) => {
 // Get all pending posts
 exports.getPendingPosts = async (req, res) => {
   try {
-    const posts = await Post.find({ status: 'pending' });
+    const posts = await Post.find({ status: 'pending', organization: req.user.organization });
     res.status(200).json(posts);
   } catch (error) {
     console.error('PENDING FETCH ERROR:', error);
@@ -83,10 +81,39 @@ exports.getPendingPosts = async (req, res) => {
   }
 };
 
-// Stub: publish post
+// ✅ Fetch posts by status
+exports.getPostsByStatus = async (req, res) => {
+  try {
+    const status = req.params.status;
+    const posts = await Post.find({ status, organization: req.user.organization });
+    res.status(200).json(posts);
+  } catch (error) {
+    console.error('STATUS FETCH ERROR:', error);
+    res.status(500).json({ message: 'Failed to fetch posts' });
+  }
+};
+
+// ✅ Decline post
+exports.declinePost = async (req, res) => {
+  try {
+    const post = await Post.findOneAndUpdate(
+      { _id: req.params.id, organization: req.user.organization },
+      { status: 'declined' },
+      { new: true }
+    );
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    res.status(200).json({ message: 'Post declined' });
+  } catch (error) {
+    console.error('DECLINE ERROR:', error);
+    res.status(500).json({ message: 'Failed to decline post' });
+  }
+};
+
+// Publish post (stub)
 exports.publishToSocialMedia = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findOne({ _id: req.params.id, organization: req.user.organization });
     if (!post) return res.status(404).json({ error: 'Post not found' });
 
     post.status = 'published';

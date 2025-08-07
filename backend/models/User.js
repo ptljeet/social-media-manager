@@ -5,7 +5,17 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['Admin', 'Editor', 'Viewer'], default: 'Viewer' },
+  role: { 
+    type: String, 
+    enum: ['super_admin', 'admin', 'editor', 'viewer'], 
+    default: 'viewer' 
+  },
+  organization: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Organization' 
+  },
+  invitationToken: { type: String, default: null },
+  isVerified: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
 

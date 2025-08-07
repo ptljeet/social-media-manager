@@ -47,3 +47,12 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+const invitationRoutes = require('./routes/invitationRoutes');
+app.use('/api/invitations', invitationRoutes);
+
+const superAdminRoutes = require('./routes/superAdminRoutes');
+app.use('/api/superadmin', superAdminRoutes);
+
+const publicRoutes = require('./routes/publicRoutes');
+app.use('/api/public', publicRoutes);

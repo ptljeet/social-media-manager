@@ -11,6 +11,9 @@ import TeamManagementPage from './pages/TeamManagementPage';
 import ReportsPage from './pages/ReportsPage';
 import PostComposerPage from './pages/PostComposerPage';
 import AdminPostApprovals from './pages/AdminPostApprovals';
+import ManageUsers from './pages/ManageUsers';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import InviteUsers from './pages/InviteUsers';
 import AdminSidebar from './components/AdminSidebar';
 
 export default function App() {
@@ -32,6 +35,14 @@ export default function App() {
         />
         <Route path="/reports" element={<ReportsPage />} />
 
+        <Route
+          path="/admin/invite-users"
+          element={
+            <PrivateRoute allowedRoles={['admin']}>
+              <InviteUsers />
+            </PrivateRoute>
+          }
+        />
         <Route
           path="/calendar"
           element={
@@ -56,6 +67,9 @@ export default function App() {
             </PrivateRoute>
           }
         />
+
+
+
         <Route
           path="/admin/dashboard"
           element={
@@ -66,6 +80,25 @@ export default function App() {
         />
         <Route path="/post-composer" element={<PostComposerPage />} />
         <Route path="/admin/approvals" element={<AdminPostApprovals />} />
+        <Route
+          path="/admin/manage-users"
+          element={
+            <PrivateRoute>
+              <ManageUsers />
+            </PrivateRoute>
+          }
+        />
+        
+
+        <Route
+          path="/superadmin/dashboard"
+          element={
+            <PrivateRoute>
+              <SuperAdminDashboard />
+            </PrivateRoute>
+          }
+        />
+
 
         <Route
           path="/admin/teams"

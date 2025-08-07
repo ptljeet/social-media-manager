@@ -1,17 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'Viewer' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', organization: '' });
+  const [organizations, setOrganizations] = useState([]);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Extract invite token from URL (if any)
+  const queryParams = new URLSearchParams(location.search);
+  const inviteToken = queryParams.get('invite');
+
+  useEffect(() => {
+    // Fetch organizations (public endpoint)
+    axios.get('http://localhost:5000/api/public/organizations')
+      .then(res => setOrganizations(res.data))
+      .catch(err => console.error('Failed to load organizations', err));
+  }, []);
+
+  // Auto-select organization if invite token is present
+  useEffect(() => {
+    if (inviteToken) {
+      axios.post('http://localhost:5000/api/auth/validate-invite', { token: inviteToken })
+        .then(res => {
+          setForm((prev) => ({
+            ...prev,
+            email: res.data.email,
+            organization: res.data.organizationId
+          }));
+        })
+        .catch(() => console.error('Invalid or expired invite token'));
+    }
+  }, [inviteToken]);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/register', form);
+      const res = await axios.post('http://localhost:5000/api/auth/register', {
+        ...form,
+        inviteToken, // pass token if available
+      });
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
       navigate('/calendar');
@@ -41,6 +72,7 @@ export default function RegisterPage() {
           type="email"
           className="w-full mb-3 p-2 border rounded"
           required
+          disabled={!!inviteToken} // disable if invite prefilled
         />
         <input
           name="password"
@@ -51,16 +83,23 @@ export default function RegisterPage() {
           className="w-full mb-3 p-2 border rounded"
           required
         />
-        <select
-          name="role"
-          value={form.role}
-          onChange={handleChange}
-          className="w-full mb-3 p-2 border rounded"
-        >
-          <option value="Admin">Admin</option>
-          <option value="Editor">Editor</option>
-          <option value="Viewer">Viewer</option>
-        </select>
+
+        {!inviteToken && (
+          <select
+            name="organization"
+            value={form.organization}
+            onChange={handleChange}
+            className="w-full mb-3 p-2 border rounded"
+            required
+          >
+            <option value="">Select Organization</option>
+            {organizations.map((org) => (
+              <option key={org._id} value={org._id}>
+                {org.name}
+              </option>
+            ))}
+          </select>
+        )}
 
         <button type="submit" className="w-full bg-green-600 text-white p-2 rounded">
           Register

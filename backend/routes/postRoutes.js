@@ -9,16 +9,19 @@ const {
   getCalendarPosts,
   approvePost,
   getPendingPosts,
-  publishToSocialMedia
+  publishToSocialMedia,
+  getPostsByStatus,   // ✅ new
+  declinePost         // ✅ new
 } = require('../controllers/postController');
 
-// 🔧 Use .single('media') — accepts a file OR not
 router.post('/', protect, upload.single('media'), createPost);
 
 router.get('/', protect, getUserPosts);
 router.get('/calendar', protect, getCalendarPosts);
 router.get('/pending', protect, getPendingPosts);
+router.get('/status/:status', protect, getPostsByStatus); // ✅ fetch by status
 router.post('/:id/approve', protect, approvePost);
+router.post('/:id/decline', protect, declinePost);       // ✅ decline
 router.post('/:id/publish', protect, publishToSocialMedia);
 
 module.exports = router;

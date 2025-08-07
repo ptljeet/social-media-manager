@@ -8,7 +8,7 @@ export default function AdminSidebar() {
       <h2 className="text-xl font-bold mb-6">Admin Panel</h2>
       <nav className="space-y-2">
         <Link to="/admin/dashboard" className="block hover:text-green-400">Dashboard</Link>
-        <Link to="/admin/users" className="block hover:text-green-400">Manage Users</Link>
+        <Link to="/admin/manage-users" className="block hover:text-green-400">Manage Users</Link>
         <Link to="/admin/teams" className="block hover:text-green-400">Manage Teams</Link>
         <Link to="/admin/approvals" className="block hover:text-green-400">Post Approvals</Link>
         <hr className="my-3 border-gray-700" />
