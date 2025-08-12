@@ -1,10 +1,19 @@
+// backend/controllers/postController.js
 const Post = require('../models/Post');
 
-// Create Post
+/**
+ * Create Post
+ * - validates required fields
+ * - converts scheduledAt to Date
+ * - uses req.user._id and req.user.organization (stringified ObjectIds)
+ */
+// backend/controllers/postController.js
 exports.createPost = async (req, res) => {
   try {
     const { title, content, platform, status, scheduledAt } = req.body;
-    const media = req.file?.filename ? `/uploads/${req.file.filename}` : null;
+
+    // ✅ Always store a clean web path, not the file system path
+    const mediaUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
     const newPost = new Post({
       title,
@@ -12,9 +21,9 @@ exports.createPost = async (req, res) => {
       platform,
       status,
       scheduledAt,
-      media,
+      media: mediaUrl, // ✅ use web path for frontend
       createdBy: req.user.id,
-      organization: req.user.organization, // ✅ Ensures organization is saved
+      organization: req.user.organization,
       team: req.user.team
     });
 
@@ -26,27 +35,50 @@ exports.createPost = async (req, res) => {
   }
 };
 
-// Get posts for logged-in user/team
-exports.getUserPosts = async (req, res) => {
+
+/**
+ * Unified list with filters for dashboard/home:
+ * GET /api/posts?status=approved&fromNow=true&limit=6&sort=scheduledAt:asc
+ * Always scoped to the caller's organization.
+ */
+exports.listPosts = async (req, res) => {
   try {
-    const posts = await Post.find({ organization: req.user.organization });
-    res.status(200).json(posts);
-  } catch (error) {
-    console.error('GET POSTS ERROR:', error);
-    res.status(500).json({ error: 'Error fetching posts' });
+    const { status, fromNow, limit = 20, sort = 'scheduledAt:asc' } = req.query;
+
+    const q = { organization: req.user.organization };
+    if (status) q.status = status;
+    if (fromNow === 'true') q.scheduledAt = { $gte: new Date() };
+
+    const [field, dir] = String(sort).split(':');
+    const sortObj = { [field]: dir === 'desc' ? -1 : 1 };
+
+    const items = await Post.find(q)
+      .sort(sortObj)
+      .limit(Math.max(1, Math.min(parseInt(limit, 10) || 20, 50)));
+
+    return res.json(items);
+  } catch (e) {
+    console.error('LIST POSTS ERROR:', e);
+    return res.status(500).json({ message: 'Failed to fetch posts' });
   }
 };
 
-// Get posts for calendar view
+// Calendar view (scoped to org)
+// Calendar view
 exports.getCalendarPosts = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, status } = req.query;
 
-    const posts = await Post.find({
+    const q = {
       scheduledAt: { $gte: new Date(startDate), $lte: new Date(endDate) },
-      organization: req.user.organization
-    });
+      organization: req.user.organization,
+    };
 
+    if (status) {
+      q.status = status; // filter only matching status if provided
+    }
+
+    const posts = await Post.find(q);
     res.status(200).json(posts);
   } catch (error) {
     console.error('CALENDAR FETCH ERROR:', error);
@@ -54,46 +86,56 @@ exports.getCalendarPosts = async (req, res) => {
   }
 };
 
-// Approve a post
+
+// Pending approvals (scoped to org)
+exports.getPendingPosts = async (req, res) => {
+  try {
+    const posts = await Post.find({
+      organization: req.user.organization,
+      status: 'pending',
+    });
+    return res.status(200).json(posts);
+  } catch (error) {
+    console.error('PENDING FETCH ERROR:', error);
+    return res.status(500).json({ error: 'Failed to fetch pending posts' });
+  }
+};
+
+// By status (scoped to org)
+exports.getPostsByStatus = async (req, res) => {
+  try {
+    const status = req.params.status;
+    const posts = await Post.find({
+      organization: req.user.organization,
+      status,
+    });
+    return res.status(200).json(posts);
+  } catch (error) {
+    console.error('STATUS FETCH ERROR:', error);
+    return res.status(500).json({ message: 'Failed to fetch posts' });
+  }
+};
+
+// Approve (scoped to org)
 exports.approvePost = async (req, res) => {
   try {
-    const post = await Post.findOne({ _id: req.params.id, organization: req.user.organization });
+    const post = await Post.findOne({
+      _id: req.params.id,
+      organization: req.user.organization,
+    });
     if (!post) return res.status(404).json({ error: 'Post not found' });
 
     post.status = 'approved';
     await post.save();
 
-    res.status(200).json({ message: 'Post approved' });
+    return res.status(200).json({ message: 'Post approved' });
   } catch (error) {
     console.error('APPROVE ERROR:', error);
-    res.status(500).json({ error: 'Error approving post' });
+    return res.status(500).json({ error: 'Error approving post' });
   }
 };
 
-// Get all pending posts
-exports.getPendingPosts = async (req, res) => {
-  try {
-    const posts = await Post.find({ status: 'pending', organization: req.user.organization });
-    res.status(200).json(posts);
-  } catch (error) {
-    console.error('PENDING FETCH ERROR:', error);
-    res.status(500).json({ error: 'Failed to fetch pending posts' });
-  }
-};
-
-// ✅ Fetch posts by status
-exports.getPostsByStatus = async (req, res) => {
-  try {
-    const status = req.params.status;
-    const posts = await Post.find({ status, organization: req.user.organization });
-    res.status(200).json(posts);
-  } catch (error) {
-    console.error('STATUS FETCH ERROR:', error);
-    res.status(500).json({ message: 'Failed to fetch posts' });
-  }
-};
-
-// ✅ Decline post
+// Decline (scoped to org)
 exports.declinePost = async (req, res) => {
   try {
     const post = await Post.findOneAndUpdate(
@@ -103,26 +145,29 @@ exports.declinePost = async (req, res) => {
     );
     if (!post) return res.status(404).json({ error: 'Post not found' });
 
-    res.status(200).json({ message: 'Post declined' });
+    return res.status(200).json({ message: 'Post declined' });
   } catch (error) {
     console.error('DECLINE ERROR:', error);
-    res.status(500).json({ message: 'Failed to decline post' });
+    return res.status(500).json({ message: 'Failed to decline post' });
   }
 };
 
-// Publish post (stub)
+// Publish (stub)
 exports.publishToSocialMedia = async (req, res) => {
   try {
-    const post = await Post.findOne({ _id: req.params.id, organization: req.user.organization });
+    const post = await Post.findOne({
+      _id: req.params.id,
+      organization: req.user.organization,
+    });
     if (!post) return res.status(404).json({ error: 'Post not found' });
 
     post.status = 'published';
     post.publishedAt = new Date();
     await post.save();
 
-    res.status(200).json({ message: 'Published (stub)' });
+    return res.status(200).json({ message: 'Published (stub)' });
   } catch (error) {
     console.error('PUBLISH ERROR:', error);
-    res.status(500).json({ error: 'Publish failed' });
+    return res.status(500).json({ error: 'Publish failed' });
   }
 };

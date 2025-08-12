@@ -1,104 +1,97 @@
 const User = require('../models/User');
-const Organization = require('../models/Organization');
 const jwt = require('jsonwebtoken');
 
-// Generate JWT with role & organization
-const generateToken = (user) => {
+const signToken = (userDoc) => {
+  // Ensure organization is a plain string in token
+  const orgId =
+    (userDoc.organization && userDoc.organization._id) ||
+    userDoc.organization ||
+    null;
+
   return jwt.sign(
-    { 
-      id: user._id, 
-      role: user.role, 
-      organization: user.organization 
+    {
+      id: String(userDoc._id),
+      role: String(userDoc.role || '').toLowerCase(),
+      organization: orgId ? String(orgId) : null,
     },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
 };
 
-// ======================== REGISTER ========================
+/** POST /api/auth/register */
 exports.registerUser = async (req, res) => {
   const { name, email, password, organization, inviteToken } = req.body;
 
   try {
+    // TODO: if you support invites, decode inviteToken to get orgId/role here.
+    const orgId = organization || null;
+    const role = 'viewer';
+
     let user = await User.findOne({ email });
     if (user) return res.status(400).json({ message: 'User already exists' });
 
-    let orgId = organization || null;
-    let finalRole = 'viewer';
-
-    // ✅ If invited user
-    if (inviteToken) {
-      try {
-        const decoded = jwt.verify(inviteToken, process.env.JWT_SECRET);
-        orgId = decoded.orgId;
-        finalRole = decoded.role;
-
-        const existingUser = await User.findOne({ email: decoded.email });
-        if (existingUser) {
-          return res.status(400).json({ message: 'User already exists' });
-        }
-      } catch (err) {
-        return res.status(400).json({ message: 'Invalid or expired invitation token' });
-      }
-    }
-
-    // ✅ Create user
-    user = new User({
-      name,
-      email,
-      password,
-      role: finalRole,
-      organization: orgId,
-      isVerified: !!inviteToken
-    });
-
+    user = new User({ name, email, password, role, organization: orgId });
     await user.save();
 
-    // ✅ Add user to organization
-    if (orgId) {
-      await Organization.findByIdAndUpdate(orgId, { $push: { users: user._id } });
-    }
+    // Re-fetch to populate organization name for response
+    const populated = await User.findById(user._id).populate('organization', 'name');
 
-    const token = generateToken(user);
-    res.status(201).json({
+    const token = signToken(populated);
+    return res.status(201).json({
       token,
-      user: { 
-        id: user._id, 
-        name: user.name, 
-        email: user.email, 
-        role: user.role,
-        organization: user.organization
-      }
+      user: {
+        id: populated._id,
+        name: populated.name,
+        email: populated.email,
+        role: populated.role,
+        organization: populated.organization?._id || null,
+        organizationName: populated.organization?.name || null,
+      },
     });
   } catch (err) {
     console.error('REGISTER ERROR:', err);
-    res.status(500).json({ message: 'Server Error' });
+    return res.status(500).json({ message: 'Server Error' });
   }
 };
 
-// ======================== LOGIN ========================
+/** POST /api/auth/login */
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email }).populate('organization');
+    const user = await User.findOne({ email }).populate('organization', 'name');
     if (!user || !(await user.matchPassword(password))) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = generateToken(user);
-    res.json({
+    const token = signToken(user);
+    return res.json({
       token,
-      user: { 
-        id: user._id, 
-        name: user.name, 
-        email: user.email, 
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
         role: user.role,
-        organization: user.organization
-      }
+        organization: user.organization?._id || null,
+        organizationName: user.organization?.name || null,
+      },
     });
   } catch (err) {
     console.error('LOGIN ERROR:', err);
-    res.status(500).json({ message: 'Server Error' });
+    return res.status(500).json({ message: 'Server Error' });
   }
+};
+
+/** GET /api/auth/me */
+exports.me = async (req, res) => {
+  const u = req.user; // provided by protect()
+  return res.json({
+    id: u._id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    organization: u.organization || null,
+    organizationName: req.user.organizationName || null,
+  });
 };

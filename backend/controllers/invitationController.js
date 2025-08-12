@@ -1,60 +1,56 @@
+// backend/controllers/invitationController.js
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const Organization = require('../models/Organization');
-const sendEmail = require('../utils/sendEmail'); // helper to send emails
 
-// Generate invite link
-exports.sendInvitation = async (req, res) => {
+const listMembers = async (req, res) => {
   try {
-    const { email, role } = req.body;
-    const orgId = req.user.organization;
+    const orgId = req.user?.organization;
+    if (!orgId) return res.status(400).json({ message: 'No organization for user' });
 
-    if (!orgId) return res.status(400).json({ message: 'Organization missing' });
-
-    const token = jwt.sign(
-      { email, orgId, role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    const inviteLink = `${process.env.FRONTEND_URL}/register?invite=${token}`;
-
-    await sendEmail(email, 'Organization Invite', `Join here: ${inviteLink}`);
-
-    res.json({ message: 'Invitation sent successfully', inviteLink });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to send invitation' });
+    const members = await User.find({ organization: orgId }).select('_id name email role');
+    return res.json(members);
+  } catch (err) {
+    console.error('LIST MEMBERS ERROR:', err);
+    return res.status(500).json({ message: 'Failed to fetch members' });
   }
 };
 
-// Accept invitation
-exports.acceptInvitation = async (req, res) => {
+const createInviteLink = async (req, res) => {
   try {
-    const { token, name, password } = req.body;
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const orgId = req.user?.organization;
+    if (!orgId) return res.status(400).json({ message: 'No organization for user' });
 
-    const { email, orgId, role } = decoded;
+    const role = 'viewer'; // enforced server-side
+    const email = req.body?.email || null;
 
-    // Check if user already exists
-    let user = await User.findOne({ email });
-    if (user) return res.status(400).json({ message: 'User already exists' });
-
-    const newUser = new User({
-      name,
-      email,
-      password,
-      role,
-      organization: orgId,
-      isVerified: true
-    });
-    await newUser.save();
-
-    await Organization.findByIdAndUpdate(orgId, {
-      $push: { users: newUser._id }
+    const token = jwt.sign({ type: 'invite', orgId, role, email }, process.env.JWT_SECRET, {
+      expiresIn: '7d',
     });
 
-    res.json({ message: 'Invitation accepted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to accept invitation' });
+    const base = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const inviteUrl = `${base}/register?invite=${encodeURIComponent(token)}`;
+
+    return res.json({ token, inviteUrl, expiresInDays: 7 });
+  } catch (err) {
+    console.error('CREATE INVITE LINK ERROR:', err);
+    return res.status(500).json({ message: 'Failed to create invite link' });
   }
 };
+
+const removeMember = async (req, res) => {
+  try {
+    const orgId = req.user?.organization;
+    const { userId } = req.params;
+
+    const user = await User.findOne({ _id: userId, organization: orgId });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    await User.deleteOne({ _id: userId });
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('REMOVE MEMBER ERROR:', err);
+    return res.status(500).json({ message: 'Failed to remove user' });
+  }
+};
+
+module.exports = { listMembers, createInviteLink, removeMember };

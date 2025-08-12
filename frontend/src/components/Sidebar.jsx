@@ -8,11 +8,8 @@ export default function Sidebar() {
   const menuItems = [
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Calendar', path: '/calendar' },
-    { label: 'Publishing', path: '/publishing' },
-    { label: 'Reports', path: '/reports' },
-    { label: 'People', path: '/people' },
     { label: 'Profile', path: '/profile' },
-    { label: 'Post Composer', path: '/post-composer' } // ✅ Added new item
+    { label: 'Post Composer', path: '/post-composer' } 
   ];
 
   const handleLogout = () => {

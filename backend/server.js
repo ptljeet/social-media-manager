@@ -1,58 +1,57 @@
+// server.js
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const path = require('path');
 const connectDB = require('./config/db');
+
+// ---- load env & connect DB ----
+dotenv.config();
+connectDB();
+
+// ---- init app ----
+const app = express();
+
+// ---- core middleware ----
+app.use(cors({ origin: ['http://localhost:3000'], credentials: false }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// ---- static: uploaded media ----
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ---- import routes ONCE ----
+const authRoutes = require('./routes/authRoutes');
+const privateRoutes = require('./routes/privateRoutes');
+const organizationRoutes = require('./routes/organizationRoutes');
+const postRoutes = require('./routes/postRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const teamRoutes = require('./routes/teamRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const userRoutes = require('./routes/userRoutes');
-const path = require('path'); 
+const invitationRoutes = require('./routes/invitationRoutes');
+const superAdminRoutes = require('./routes/superAdminRoutes');
+const publicRoutes = require('./routes/publicRoutes');
 
-
-
-// Load environment variables
-dotenv.config();
-
-// Connect to MongoDB
-connectDB();
-
-// Initialize app
-const app = express();
-
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/private', require('./routes/privateRoutes'));
-app.use('/api', require('./routes/organizationRoutes'));
-app.use('/api/posts', require('./routes/postRoutes'));
-app.use('/api/admin', require('./routes/adminRoutes'));
-app.use('/api/teams', require('./routes/teamRoutes')); 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// ---- mount routes ONCE ----
+app.use('/api/auth', authRoutes);
+app.use('/api/private', privateRoutes);
+app.use('/api', organizationRoutes);           // e.g. /api/organizations/...
+app.use('/api/posts', postRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/teams', teamRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/teams', teamRoutes);
+app.use('/api/invitations', invitationRoutes);
+app.use('/api/superadmin', superAdminRoutes);
+app.use('/api/public', publicRoutes);
 
+// ---- health check ----
+app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
+// ---- 404 fallback (optional) ----
+app.use((req, res) => res.status(404).json({ message: 'Not Found' }));
 
-
-
-// Health check route
-app.get('/', (req, res) => {
-  res.send('API is running...');
-});
-
-// TODO: Add routes here
-// app.use('/api/auth', require('./routes/authRoutes'));
-
+// ---- start server ----
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-const invitationRoutes = require('./routes/invitationRoutes');
-app.use('/api/invitations', invitationRoutes);
-
-const superAdminRoutes = require('./routes/superAdminRoutes');
-app.use('/api/superadmin', superAdminRoutes);
-
-const publicRoutes = require('./routes/publicRoutes');
-app.use('/api/public', publicRoutes);

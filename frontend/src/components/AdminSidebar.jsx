@@ -9,7 +9,6 @@ export default function AdminSidebar() {
       <nav className="space-y-2">
         <Link to="/admin/dashboard" className="block hover:text-green-400">Dashboard</Link>
         <Link to="/admin/manage-users" className="block hover:text-green-400">Manage Users</Link>
-        <Link to="/admin/teams" className="block hover:text-green-400">Manage Teams</Link>
         <Link to="/admin/approvals" className="block hover:text-green-400">Post Approvals</Link>
         <hr className="my-3 border-gray-700" />
         <Link to="/profile" className="block text-sm hover:text-blue-300">👤 Profile</Link>

@@ -1,8 +1,34 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 
 export default function ProfilePage() {
-  const user = JSON.parse(localStorage.getItem('user'));
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user')) || null;
+    } catch {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState(!user);
 
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const res = await axios.get('http://localhost:5000/api/auth/me', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        });
+        setUser(res.data);
+        localStorage.setItem('user', JSON.stringify(res.data));
+      } catch (e) {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMe();
+  }, []);
+
+  if (loading) return <p className="text-center mt-10">Loading…</p>;
   if (!user) return <p className="text-center mt-10">User not logged in.</p>;
 
   return (
@@ -11,8 +37,10 @@ export default function ProfilePage() {
       <p><strong>Name:</strong> {user.name}</p>
       <p><strong>Email:</strong> {user.email}</p>
       <p><strong>Role:</strong> {user.role}</p>
+      {user.organizationName ? (
+        <p><strong>Organization:</strong> {user.organizationName}</p>
+      ) : null}
 
-      {/*Logout Button */}
       <button
         onClick={() => {
           localStorage.clear();
