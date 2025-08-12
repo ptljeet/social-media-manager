@@ -1,30 +1,37 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+// src/App.jsx
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import CalendarPage from './pages/CalendarPage';
+
 import HomePage from './pages/HomePage';
+import CalendarPage from './pages/CalendarPage';
 import ProfilePage from './pages/ProfilePage';
 import OrganizationPage from './pages/OrganizationPage';
-import PrivateRoute from './components/PrivateRoute';
-import AdminDashboard from './pages/AdminDashboard';
-import TeamManagementPage from './pages/TeamManagementPage';
-import ReportsPage from './pages/ReportsPage';
 import PostComposerPage from './pages/PostComposerPage';
-import AdminPostApprovals from './pages/AdminPostApprovals';
+import ReportsPage from './pages/ReportsPage';
+
+import AdminDashboard from './pages/AdminDashboard';
 import ManageUsers from './pages/ManageUsers';
-import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import AdminPostApprovals from './pages/AdminPostApprovals';
 import InviteUsers from './pages/InviteUsers';
-import AdminSidebar from './components/AdminSidebar';
+import TeamManagementPage from './pages/TeamManagementPage';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
+
+// If you created the dedicated admin profile page:
+import AdminProfilePage from './pages/AdminProfilePage';
+
+import PrivateRoute from './components/PrivateRoute';
 
 export default function App() {
   return (
     <Router>
       <Routes>
-        {/* Public Routes */}
+        {/* ---------- Public ---------- */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Protected Routes */}
+        {/* ---------- User (authenticated) ---------- */}
         <Route
           path="/dashboard"
           element={
@@ -33,21 +40,19 @@ export default function App() {
             </PrivateRoute>
           }
         />
-        <Route path="/reports" element={<ReportsPage />} />
-
-        <Route
-          path="/admin/invite-users"
-          element={
-            <PrivateRoute allowedRoles={['admin']}>
-              <InviteUsers />
-            </PrivateRoute>
-          }
-        />
         <Route
           path="/calendar"
           element={
             <PrivateRoute>
               <CalendarPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/post-composer"
+          element={
+            <PrivateRoute>
+              <PostComposerPage />
             </PrivateRoute>
           }
         />
@@ -67,56 +72,83 @@ export default function App() {
             </PrivateRoute>
           }
         />
+        <Route
+          path="/reports"
+          element={
+            <PrivateRoute>
+              <ReportsPage />
+            </PrivateRoute>
+          }
+        />
 
-
-
+        {/* ---------- Admin (admin or super_admin) ---------- */}
         <Route
           path="/admin/dashboard"
           element={
-            <PrivateRoute>
+            <PrivateRoute allowedRoles={['admin', 'super_admin']}>
               <AdminDashboard />
             </PrivateRoute>
           }
         />
-        <Route path="/post-composer" element={<PostComposerPage />} />
-        <Route path="/admin/approvals" element={<AdminPostApprovals />} />
         <Route
           path="/admin/manage-users"
           element={
-            <PrivateRoute>
+            <PrivateRoute allowedRoles={['admin', 'super_admin']}>
               <ManageUsers />
             </PrivateRoute>
           }
         />
-        
+        <Route
+          path="/admin/approvals"
+          element={
+            <PrivateRoute allowedRoles={['admin', 'super_admin']}>
+              <AdminPostApprovals />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/invite-users"
+          element={
+            <PrivateRoute allowedRoles={['admin', 'super_admin']}>
+              <InviteUsers />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/teams"
+          element={
+            <PrivateRoute allowedRoles={['admin', 'super_admin']}>
+              <TeamManagementPage />
+            </PrivateRoute>
+          }
+        />
+        {/* Dedicated admin profile (separate from user profile) */}
+        <Route
+          path="/admin/profile"
+          element={
+            <PrivateRoute allowedRoles={['admin', 'super_admin']}>
+              <AdminProfilePage />
+            </PrivateRoute>
+          }
+        />
 
+        {/* ---------- Super Admin only ---------- */}
         <Route
           path="/superadmin/dashboard"
           element={
-            <PrivateRoute>
+            <PrivateRoute allowedRoles={['super_admin']}>
               <SuperAdminDashboard />
             </PrivateRoute>
           }
         />
 
-
-        <Route
-          path="/admin/teams"
-          element={
-            <PrivateRoute>
-              <TeamManagementPage />
-            </PrivateRoute>
-          }
-        />
-
-        {/* Optional Placeholder Routes */}
+        {/* ---------- Optional placeholder routes (authenticated) ---------- */}
         {[
-          "/inbox",
-          "/publishing",
-          "/listening",
-          "/reports",
-          "/people",
-          "/reviews"
+          '/inbox',
+          '/publishing',
+          '/listening',
+          '/people',
+          '/reviews',
         ].map((path) => (
           <Route
             key={path}
@@ -124,12 +156,15 @@ export default function App() {
             element={
               <PrivateRoute>
                 <div className="p-6 text-lg font-medium">
-                  Coming Soon: {path.replace("/", "")}
+                  Coming Soon: {path.replace('/', '')}
                 </div>
               </PrivateRoute>
             }
           />
         ))}
+
+        {/* ---------- Fallback ---------- */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Router>
   );
